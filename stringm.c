@@ -33,7 +33,17 @@ size_t strlen_m(const char *string)
 */
 char *strncpy_m(const char *string, size_t n)
 {
-    return NULL;
+    char *copy = malloc(n + 1);
+    if (copy == NULL)
+        return NULL;
+
+    for (size_t i = 0; i < n; i++) {
+        copy[i] = string[i];
+    }
+
+    copy[n] = '\0';
+
+    return copy;
 }
 
 /*
@@ -47,7 +57,37 @@ char *strncpy_m(const char *string, size_t n)
 */
 char *join_m(Strings strings, const char *delimiter)
 {
-    return NULL;
+    if (strings.num_strings == 0)
+        return NULL;
+
+    size_t delimiter_len = strlen_m(delimiter);
+    size_t total_len = 0;
+
+    for (size_t i = 0; i < strings.num_strings; i++) {
+        total_len += strlen_m(strings.strings[i]);
+        if (i < strings.num_strings - 1)
+            total_len += delimiter_len;
+    }
+
+    char *result = malloc(total_len + 1);
+    if (result == NULL)
+        return NULL;
+
+    size_t pos = 0;
+    for (size_t i = 0; i < strings.num_strings; i++) {
+        const char *s = strings.strings[i];
+        size_t len = strlen_m(s);
+        for (size_t j = 0; j < len; j++)
+            result[pos++] = s[j];
+
+        if (i < strings.num_strings - 1) {
+            for (size_t j = 0; j < delimiter_len; j++)
+                result[pos++] = delimiter[j];
+        }
+    }
+    result[pos] = '\0';
+
+    return result;
 }
 
 /*
@@ -56,7 +96,10 @@ char *join_m(Strings strings, const char *delimiter)
 */
 void free_strings(Strings strings)
 {
-
+    for (int i = 0; i < strings.num_strings; i++) {
+        free(strings.strings[i]);
+    }
+    free(strings.strings);
 }
 
 /*
@@ -81,6 +124,65 @@ void free_strings(Strings strings)
 Strings split_m(const char *string, const char *pattern)
 {
     Strings result = { .num_strings = 0, .strings = NULL };
+
+    if (pattern[0] == '\0') {
+        result.num_strings = 1;
+        result.strings = malloc(sizeof(char *));
+        if (result.strings != NULL) {
+            size_t len = strlen_m(string);
+            result.strings[0] = strncpy_m(string, len);
+            if (result.strings[0] == NULL) {
+                free(result.strings);
+                result.strings = NULL;
+                result.num_strings = 0;
+            }
+        }
+        return result;
+    }
+
+    const char *current = string;
+    const char *next;
+    size_t count = 0;
+
+    while ((next = strstr_m(current, pattern)) != NULL) {
+        count++;
+        current = next + strlen_m(pattern);
+    }
+    count++; 
+    result.num_strings = count;
+    result.strings = malloc(count * sizeof(char *));
+    if (result.strings == NULL) {
+        result.num_strings = 0;
+        return result;
+    }
+
+    
+    current = string;
+    size_t idx = 0;
+    while ((next = strstr_m(current, pattern)) != NULL) {
+        size_t len = next - current; 
+        result.strings[idx] = strncpy_m(current, len);
+        if (result.strings[idx] == NULL) {
+            for (size_t j = 0; j < idx; j++)
+                free(result.strings[j]);
+            free(result.strings);
+            result.num_strings = 0;
+            result.strings = NULL;
+            return result;
+        }
+        idx++;
+        current = next + strlen_m(pattern);
+    }
+
+    result.strings[idx] = strncpy_m(current, strlen_m(current));
+    if (result.strings[idx] == NULL) {
+        for (size_t j = 0; j < idx; j++)
+            free(result.strings[j]);
+        free(result.strings);
+        result.num_strings = 0;
+        result.strings = NULL;
+    }
+
     return result;
 }
 
@@ -97,7 +199,14 @@ Strings split_m(const char *string, const char *pattern)
 */
 char *find_and_replace_all_m(const char *string, const char *pattern, const char *replacement)
 {
-    return NULL;
+    if (pattern[0] == '\0') {
+        return strncpy_m(string, strlen_m(string));
+    }
+
+    Strings parts = split_m(string, pattern);
+    char *result = join_m(parts, replacement);
+    free_strings(parts);
+    return result;
 }
 
 /*
