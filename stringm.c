@@ -15,7 +15,11 @@
 */
 size_t strlen_m(const char *string)
 {
-    return 0;
+    size_t length = 0;
+    while (string[length] != '\0') {
+        length++;
+    }
+    return length;
 }
 
 /*
